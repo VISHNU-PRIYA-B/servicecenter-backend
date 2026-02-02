@@ -69,13 +69,10 @@ class CompanyProfileType(DjangoObjectType):
             return info.context.build_absolute_uri(self.seal.url).replace("http://","https://")
         return None 
 
-
     def resolve_authorizedSignature(self, info):
         if self.authorized_signature:
             return info.context.build_absolute_uri(self.authorized_signature.url).replace("http://","https://")
         return None
-    
-
         
 # class RepairRequestType(DjangoObjectType):
 #     estimation = graphene.Field(lambda: EstimationType)
@@ -93,7 +90,6 @@ class CompanyProfileType(DjangoObjectType):
 #         if estimation:
 #             return estimation.items.all()
 #         return []
-
 
 class EstimationType(DjangoObjectType):
     invoice = graphene.Field(lambda: InvoiceType)
@@ -138,13 +134,11 @@ class RepairRequestType(DjangoObjectType):
         return Updaterepairstatus.objects.filter(
             repairrequest=self
         ).order_by("updated_on")
-
     
 class UpdaterepairstatusType(DjangoObjectType):
     class Meta:
        model = Updaterepairstatus
        fields = "__all__"
-
 
 class InvoiceType(DjangoObjectType):
     items = graphene.List(EstimationItemType)
@@ -158,7 +152,6 @@ class InvoiceType(DjangoObjectType):
         return[]
 
 class Query(graphene.ObjectType):
-
         # User Queries
     user = graphene.Field(UserType, id=graphene.ID(required=True))
     users = graphene.List(UserType)
@@ -465,7 +458,7 @@ class UpdateProfile(graphene.Mutation):
             success=True,
             message="Profile updated successfully"
         )
-    
+
 class CreateRepairRequest(graphene.Mutation):
     class Arguments:
         customer_name = graphene.String(required = True)
@@ -617,29 +610,33 @@ class UpdateRepairStatus(graphene.Mutation):
         except RepairRequest.DoesNotExist:
             raise GraphQLError("Repair request not found.")
 
-        current = repair_request.status
+        estimation = Estimation.objects.filter(
+            repair_request=repair_request
+        ).order_by("-created_at").first()
 
-        # -----------------------------
-        # CUSTOMER CAN ACCEPT OR REJECT
-        # -----------------------------
-        if current == "PENDING":
+        if not estimation:
+            raise GraphQLError("No estimation found for this request.")
+
+        current = estimation.status 
+
+        if current == "WAITING_FOR_APPROVAL":
             if update_status not in ["ACCEPTED", "REJECTED"]:
                 raise GraphQLError("Customer must ACCEPT or REJECT estimation first.")
 
             if not user.customer:
                 raise GraphQLError("Only customer can accept or reject estimation.")
 
-            repair_request.status = update_status
-            repair_request.save()
+            estimation.status = update_status
+            estimation.save()
 
             return UpdateRepairStatus(
                 success=True,
-                message="Status updated successfully.",
+                message="Estimation status updated successfully.",
                 status=update_status
             )
 
         if current == "REJECTED":
-            raise GraphQLError("Request was rejected. No further updates allowed.")
+            raise GraphQLError("Estimation was rejected. No further updates allowed.")
 
         if not user.admin:
             raise GraphQLError("Only admin can update status after acceptance.")
@@ -652,10 +649,11 @@ class UpdateRepairStatus(graphene.Mutation):
         }
 
         expected_next = ADMIN_FLOW.get(current)
+        if expected_next != update_status:
+            raise GraphQLError(f"Next valid status is {expected_next}")
 
-        # SAVE ADMIN UPDATE
-        repair_request.status = update_status
-        repair_request.save()
+        estimation.status = update_status
+        estimation.save()
 
         Updaterepairstatus.objects.create(
             repairrequest=repair_request,
@@ -665,9 +663,10 @@ class UpdateRepairStatus(graphene.Mutation):
 
         return UpdateRepairStatus(
             success=True,
-            message="Status updated successfully.",
+            message="Estimation status updated successfully.",
             status=update_status
         )
+
 
 class GenerateInvoice(graphene.Mutation):
     class Arguments:

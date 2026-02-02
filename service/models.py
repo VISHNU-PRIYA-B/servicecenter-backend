@@ -116,7 +116,9 @@ class RepairRequest(models.Model):
         return f"{self.item_name} - ({self.request_id})"
     
 class Estimation(models.Model):
+    STATUS_CHOICES=[('WAITING_FOR_APPROVAL','WAITING_FOR_APPROVAL'),('STARTED','STARTED'), ('REPAIRING','REPAIRING'),('TESTING','TESTING'),('READY_TO_DELIVER','READY_TO_DELIVER')]
     repair_request = models.ForeignKey(RepairRequest, on_delete=models.CASCADE, related_name="estimations")
+    status = models.CharField(max_length=30,choices=STATUS_CHOICES,default="WAITING_FOR_APPROVAL")
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
