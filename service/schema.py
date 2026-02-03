@@ -553,43 +553,32 @@ class ApproveEstimation(graphene.Mutation):
         estimation_id = graphene.ID(required=True)
         approved = graphene.Boolean(required=True)
 
-    estimation = graphene.Field(EstimationType)
     success = graphene.Boolean()
     message = graphene.String()
+    estimation = graphene.Field(EstimationType)
 
     @classmethod
-
     def mutate(cls, root, info, estimation_id, approved):
         estimation = Estimation.objects.get(id=estimation_id)
-        repair_request = estimation.repair_request
+
+        if estimation.status != "WAITING_FOR_APPROVAL":
+            raise GraphQLError("Estimation already processed.")
 
         if approved:
             estimation.approved = True
-            estimation.save()
-
-            repair_request.status = "ACCEPTED"
-            repair_request.save()
-
+            estimation.status = "ACCEPTED"      # ✅ CRITICAL FIX
         else:
-        # If rejected
-            if Estimation.objects.filter(
-                repair_request=repair_request,
-                approved=True
-            ).exists():
-            # There is already an accepted estimation → delete this rejected one
-                estimation.delete()
+            estimation.approved = False
+            estimation.status = "REJECTED"
 
-                repair_request.status = "ACCEPTED"
-                repair_request.save()
-            else:
-            # No accepted estimation exists → full rejection
-                estimation.approved = False
-                estimation.delete()
+        estimation.save()
 
-                repair_request.status = "REJECTED"
-                repair_request.save()
+        return ApproveEstimation(
+            success=True,
+            message="Estimation updated successfully.",
+            estimation=estimation
+        )
 
-        return ApproveEstimation(success=True)
 
 class UpdateRepairStatus(graphene.Mutation):
     class Arguments:
@@ -648,9 +637,6 @@ class UpdateRepairStatus(graphene.Mutation):
             "TESTING": "READY_TO_DELIVER",
         }
 
-        expected_next = ADMIN_FLOW.get(current)
-        if expected_next != update_status:
-            raise GraphQLError(f"Next valid status is {expected_next}")
 
         estimation.status = update_status
         estimation.save()
