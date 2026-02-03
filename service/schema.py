@@ -566,7 +566,6 @@ class ApproveEstimation(graphene.Mutation):
 
         if approved:
             estimation.approved = True
-            estimation.status = "ACCEPTED"
             estimation.save()
 
             return ApproveEstimation(
