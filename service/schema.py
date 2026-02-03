@@ -566,18 +566,24 @@ class ApproveEstimation(graphene.Mutation):
 
         if approved:
             estimation.approved = True
-            estimation.status = "ACCEPTED"      # ✅ CRITICAL FIX
-        else:
-            estimation.approved = False
-            estimation.status = "REJECTED"
+            estimation.status = "ACCEPTED"
+            estimation.save()
 
-        estimation.save()
+            return ApproveEstimation(
+                success=True,
+                message="Estimation accepted successfully.",
+                estimation=estimation
+            )
+
+        #  REJECT CASE → DELETE
+        estimation.delete()
 
         return ApproveEstimation(
             success=True,
-            message="Estimation updated successfully.",
-            estimation=estimation
+            message="Estimation rejected and deleted.",
+            estimation=None
         )
+
 
 
 class UpdateRepairStatus(graphene.Mutation):
