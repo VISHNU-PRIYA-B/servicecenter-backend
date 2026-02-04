@@ -23,6 +23,15 @@ from django.conf import settings as SETTING
 from django.contrib.auth import get_user_model
 import random
 
+class ServiceEstimationStatusChoices(graphene.Enum):
+    WAITING_FOR_APPROVAL = "WAITING_FOR_APPROVAL"
+    STARTED = "STARTED"
+    REPAIRING = "REPAIRING"
+    TESTING = "TESTING"
+    READY_TO_DELIVER = "READY_TO_DELIVER"
+    REJECTED = "REJECTED"
+
+
 class UserFilter(django_filters.FilterSet):
     class Meta:
         model = User
@@ -92,6 +101,7 @@ class CompanyProfileType(DjangoObjectType):
 #         return []
 
 class EstimationType(DjangoObjectType):
+    status = ServiceEstimationStatusChoices()
     invoice = graphene.Field(lambda: InvoiceType)
     class Meta:
         model = Estimation
@@ -611,46 +621,40 @@ class UpdateRepairStatus(graphene.Mutation):
         if not estimation:
             raise GraphQLError("No estimation found for this request.")
 
-        current = estimation.status 
-
-        if current == "WAITING_FOR_APPROVAL":
-            if update_status not in ["ACCEPTED", "REJECTED"]:
-                raise GraphQLError("Customer must ACCEPT or REJECT estimation first.")
-
-            if not user.customer:
-                raise GraphQLError("Only customer can accept or reject estimation.")
-
-            estimation.status = update_status
-            estimation.save()
-
-            return UpdateRepairStatus(
-                success=True,
-                message="Estimation status updated successfully.",
-                status=update_status
-            )
+        current = estimation.status
+        if current == "WAITING_FOR_APPROVAL":  
+            raise GraphQLError("Approve estimation first before updating status.")
 
         if current == "REJECTED":
             raise GraphQLError("Estimation was rejected. No further updates allowed.")
 
         if not user.admin:
-            raise GraphQLError("Only admin can update status after acceptance.")
+            raise GraphQLError("Only admin can update status.")
+        
+        ALLOWED_STATUSES = [
 
-        ADMIN_FLOW = {
-            "ACCEPTED": "STARTED",
-            "STARTED": "REPAIRING",
-            "REPAIRING": "TESTING",
-            "TESTING": "READY_TO_DELIVER",
-        }
+            "STARTED",
+            "REPAIRING",
+            "TESTING",
+            "READY_TO_DELIVER",
+            ]
+        
+        
 
+        if update_status not in ALLOWED_STATUSES:
+            raise GraphQLError("Invalid status update.")
+            raise GraphQLError("Invalid status update.")
 
         estimation.status = update_status
         estimation.save()
-
         Updaterepairstatus.objects.create(
+
             repairrequest=repair_request,
             update_status=update_status,
             description=description
         )
+
+
 
         return UpdateRepairStatus(
             success=True,
