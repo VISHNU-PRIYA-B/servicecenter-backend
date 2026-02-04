@@ -593,8 +593,6 @@ class ApproveEstimation(graphene.Mutation):
             estimation=None
         )
 
-
-
 class UpdateRepairStatus(graphene.Mutation):
     class Arguments:
         request_id = graphene.String(required=True)
@@ -645,8 +643,11 @@ class UpdateRepairStatus(graphene.Mutation):
 
         estimation.status = update_status
         estimation.save()
-        Updaterepairstatus.objects.create(
 
+        repair_request.status=update_status
+        repair_request.save()
+        
+        Updaterepairstatus.objects.create(
             repairrequest=repair_request,
             update_status=update_status,
             description=description
@@ -659,7 +660,6 @@ class UpdateRepairStatus(graphene.Mutation):
             message="Estimation status updated successfully.",
             status=update_status
         )
-
 
 class GenerateInvoice(graphene.Mutation):
     class Arguments:
@@ -709,7 +709,6 @@ class GenerateInvoice(graphene.Mutation):
             parts_replaced=parts_replaced,
             notes=notes,
         )
-
         #  attach invoice to estimation
         estimation.invoice = invoice
         estimation.save()
