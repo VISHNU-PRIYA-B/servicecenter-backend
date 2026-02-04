@@ -616,6 +616,7 @@ class UpdateRepairStatus(graphene.Mutation):
 
         estimation = Estimation.objects.filter(
             repair_request=repair_request
+            approved=True
         ).order_by("-created_at").first()
 
         if not estimation:
