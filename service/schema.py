@@ -615,7 +615,7 @@ class UpdateRepairStatus(graphene.Mutation):
             raise GraphQLError("Repair request not found.")
 
         estimation = Estimation.objects.filter(
-            repair_request=repair_request
+            repair_request=repair_request,
             approved=True
         ).order_by("-created_at").first()
 
