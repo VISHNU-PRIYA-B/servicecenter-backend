@@ -623,8 +623,6 @@ class UpdateRepairStatus(graphene.Mutation):
             raise GraphQLError("No estimation found for this request.")
 
         current = estimation.status
-        if current == "WAITING_FOR_APPROVAL":  
-            raise GraphQLError("Approve estimation first before updating status.")
 
         if current == "REJECTED":
             raise GraphQLError("Estimation was rejected. No further updates allowed.")
@@ -643,7 +641,6 @@ class UpdateRepairStatus(graphene.Mutation):
         
 
         if update_status not in ALLOWED_STATUSES:
-            raise GraphQLError("Invalid status update.")
             raise GraphQLError("Invalid status update.")
 
         estimation.status = update_status
