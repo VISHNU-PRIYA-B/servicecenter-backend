@@ -129,18 +129,21 @@ class RepairRequestType(DjangoObjectType):
     items = graphene.List(EstimationItemType)
     updates = graphene.List(lambda: UpdaterepairstatusType)
 
+    current_estimation_status = graphene.String()
+
     class Meta:
         model = RepairRequest
         fields = "__all__"
 
+    def resolve_current_estimation_status(self, info):
+        return self.current_estimation_status
+
     def resolve_estimation(self, info):
-        return Estimation.objects.filter(repair_request=self).first()
+        return Estimation.objects.filter(repair_request=self).order_by("created_at").first()
 
     def resolve_items(self, info):
-        estimation = Estimation.objects.filter(repair_request=self).first()
-        if estimation:
-            return estimation.items.all()
-        return []
+        estimation = Estimation.objects.filter(repair_request=self).order_by("created_at").first()
+        return estimation.items.all() if estimation else []
 
     def resolve_updates(self, info):
         # FIXED HERE
@@ -621,7 +624,6 @@ class UpdateRepairStatus(graphene.Mutation):
 
         estimation = Estimation.objects.filter(
             repair_request=repair_request,
-            approved=True
         ).order_by("-created_at").first()
 
         if not estimation:
