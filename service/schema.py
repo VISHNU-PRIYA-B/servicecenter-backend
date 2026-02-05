@@ -24,7 +24,9 @@ from django.contrib.auth import get_user_model
 import random
 
 class ServiceEstimationStatusChoices(graphene.Enum):
+    PENDING="PENDING"   
     WAITING_FOR_APPROVAL = "WAITING_FOR_APPROVAL"
+    ACCEPTED="ACCEPTED"
     STARTED = "STARTED"
     REPAIRING = "REPAIRING"
     TESTING = "TESTING"
@@ -580,7 +582,7 @@ class ApproveEstimation(graphene.Mutation):
 
                         #  RESET update-status workflow
             request = estimation.repair_request
-            request.status = "IN_PROGRESS"  
+            request.status = "STARTED"  
             request.save()
 
             return ApproveEstimation(
