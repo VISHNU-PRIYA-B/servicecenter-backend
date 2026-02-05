@@ -117,7 +117,7 @@ class RepairRequest(models.Model):
     
     @property
     def current_estimation_status(self):
-        latest = self.estimation_set.order_by("-created_at").first()
+        latest = self.estimations.order_by("-created_at").first()
         return latest.status if latest else "STARTED"
     
 class Estimation(models.Model):
