@@ -578,6 +578,11 @@ class ApproveEstimation(graphene.Mutation):
             estimation.approved = True
             estimation.save()
 
+                        #  RESET update-status workflow
+            request = estimation.repair_request
+            request.status = "IN_PROGRESS"  
+            request.save()
+
             return ApproveEstimation(
                 success=True,
                 message="Estimation accepted successfully.",
@@ -646,14 +651,12 @@ class UpdateRepairStatus(graphene.Mutation):
 
         repair_request.status=update_status
         repair_request.save()
-        
+
         Updaterepairstatus.objects.create(
             repairrequest=repair_request,
             update_status=update_status,
             description=description
         )
-
-
 
         return UpdateRepairStatus(
             success=True,
