@@ -1,4 +1,5 @@
 from multiprocessing.util import info
+from urllib import request
 import graphene
 import django_filters
 import graphql_jwt.shortcuts 
@@ -651,8 +652,13 @@ class UpdateRepairStatus(graphene.Mutation):
         estimation.status = update_status
         estimation.save()
 
+        request = estimation.repair_request
+        request.status = "STARTED"  
+        request.save()
+
         repair_request.status=update_status
         repair_request.save()
+
 
         Updaterepairstatus.objects.create(
             repairrequest=repair_request,
