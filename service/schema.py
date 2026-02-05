@@ -139,14 +139,13 @@ class RepairRequestType(DjangoObjectType):
         return self.current_estimation_status
 
     def resolve_estimation(self, info):
-        return Estimation.objects.filter(repair_request=self).order_by("created_at").first()
+        return self.estimations.order_by("-created_at").first()
 
     def resolve_items(self, info):
-        estimation = Estimation.objects.filter(repair_request=self).order_by("created_at").first()
+        estimation = self.estimations.order_by("-created_at").first()
         return estimation.items.all() if estimation else []
 
     def resolve_updates(self, info):
-        # FIXED HERE
         return Updaterepairstatus.objects.filter(
             repairrequest=self
         ).order_by("updated_on")
