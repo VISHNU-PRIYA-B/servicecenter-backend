@@ -23,6 +23,7 @@ from django.core.mail import send_mail
 from django.conf import settings as SETTING
 from django.contrib.auth import get_user_model
 import random
+from django.utils import timezone
 
 class ServiceEstimationStatusChoices(graphene.Enum):
     PENDING="PENDING"   
@@ -648,6 +649,20 @@ class UpdateRepairStatus(graphene.Mutation):
             raise GraphQLError("Invalid status update.")
 
         estimation.status = update_status
+                # ✅ Set ONLY the relevant date
+        now = timezone.now()
+
+        if update_status == "STARTED" and not estimation.started_date:
+            estimation.started_date = now
+
+        elif update_status == "REPAIRING" and not estimation.repairing_date:
+            estimation.repairing_date = now
+
+        elif update_status == "TESTING" and not estimation.testing_date:
+            estimation.testing_date = now
+
+        elif update_status == "READY_TO_DELIVER" and not estimation.ready_to_deliver_date:
+            estimation.ready_to_deliver_date = now
         estimation.save()
 
         Updaterepairstatus.objects.create(
