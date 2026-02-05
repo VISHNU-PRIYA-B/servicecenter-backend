@@ -130,6 +130,10 @@ class Estimation(models.Model):
     approved = models.BooleanField(null=True, blank=True, default=None)
     created_at = models.DateTimeField(auto_now_add=True)
     invoice = models.ForeignKey("Invoice",on_delete=models.SET_NULL,null=True,blank=True,related_name="estimations")
+    started_date = models.DateTimeField(null=True, blank=True)
+    repairing_date = models.DateTimeField(null=True, blank=True)
+    testing_date = models.DateTimeField(null=True, blank=True)
+    ready_to_deliver_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Estimation for Request {self.repair_request_id}"
