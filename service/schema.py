@@ -544,7 +544,8 @@ class AddEstimationItem(graphene.Mutation):
         if not estimation:
             estimation = Estimation.objects.create(
                 repair_request=repair_request,
-                approved=None
+                approved=None,
+                status="WAITING_FOR_APPROVAL"
             )
 
         item = Estimationitems.objects.create(
@@ -556,8 +557,6 @@ class AddEstimationItem(graphene.Mutation):
 
         estimation.calculate_totals()
 
-        repair_request.status ="WAITING_FOR_APPROVAL"
-        repair_request.save()
 
         return AddEstimationItem(item=item)
 
@@ -644,21 +643,11 @@ class UpdateRepairStatus(graphene.Mutation):
             "READY_TO_DELIVER",
             ]
         
-        
-
         if update_status not in ALLOWED_STATUSES:
             raise GraphQLError("Invalid status update.")
 
         estimation.status = update_status
         estimation.save()
-
-        request = estimation.repair_request
-        request.status = "STARTED"  
-        request.save()
-
-        repair_request.status=update_status
-        repair_request.save()
-
 
         Updaterepairstatus.objects.create(
             repairrequest=repair_request,
@@ -671,6 +660,7 @@ class UpdateRepairStatus(graphene.Mutation):
             message="Estimation status updated successfully.",
             status=update_status
         )
+
 
 class GenerateInvoice(graphene.Mutation):
     class Arguments:
