@@ -115,6 +115,11 @@ class RepairRequest(models.Model):
     def __str__(self):
         return f"{self.item_name} - ({self.request_id})"
     
+    @property
+    def current_estimation_status(self):
+        latest = self.estimation_set.order_by("-created_at").first()
+        return latest.status if latest else "STARTED"
+    
 class Estimation(models.Model):
     STATUS_CHOICES=[('WAITING_FOR_APPROVAL','WAITING_FOR_APPROVAL'),('STARTED','STARTED'), ('REPAIRING','REPAIRING'),('TESTING','TESTING'),('READY_TO_DELIVER','READY_TO_DELIVER')]
     repair_request = models.ForeignKey(RepairRequest, on_delete=models.CASCADE, related_name="estimations")
