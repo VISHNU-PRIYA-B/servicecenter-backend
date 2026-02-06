@@ -182,7 +182,7 @@ class Updaterepairstatus(models.Model):
    ]
   
    update_status = models.CharField(max_length=50, choices=UPDATE_STATUS_CHOICE)
-   estimation=models.ForeignKey(Estimation,on_delete=models.CASCADE,related_name="UPDATES")
+   estimation=models.ForeignKey(Estimation,on_delete=models.CASCADE,related_name="updates")
    repairrequest = models.ForeignKey(RepairRequest, on_delete=models.CASCADE,related_name="updates")
    description = models.CharField(max_length=100)
    updated_on = models.DateField(auto_now_add=True)
