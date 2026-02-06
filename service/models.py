@@ -144,25 +144,8 @@ class Estimation(models.Model):
         subtotal = Decimal("0.00")
 
         for item in self.items.all():
-            try:
-                raw_amount = item.amount
-
-                if raw_amount in (None, "", " "):
-                    amount = Decimal("0.00")
-                else:
-                    amount = Decimal(str(raw_amount).strip())
-
-                subtotal += amount
-
-            except (InvalidOperation, TypeError, ValueError):
-            # TEMP DEBUG – keep until stable
-                print(
-                    "BAD ITEM FOUND →",
-                    "Item ID:", item.id,
-                    "amount:", repr(item.amount)
-                )
-                raise
-
+            subtotal += item.amount
+            
         self.subtotal = subtotal
         self.tax = Decimal("0.00")   # adjust if you add tax logic later
         self.total = subtotal
@@ -174,11 +157,33 @@ class Estimationitems(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(decimal_places=2, max_digits=10)
 
+    # @property
+    # def amount(self):
+    #     return Decimal(self.quantity) *self.unit_price
+    # def __str__(self):
+    #     return f"{self.description} x {self.quantity}"
+
     @property
     def amount(self):
-        return Decimal(self.quantity) *self.unit_price
-    def __str__(self):
-        return f"{self.description} x {self.quantity}"
+        try:
+            price = self.unit_price
+            qty = self.quantity
+
+            if price in (None, "", " "):
+                price = Decimal("0.00")
+            if qty in (None, ""):
+                qty = 0
+
+            return Decimal(price) * int(qty)
+
+        except (InvalidOperation, TypeError, ValueError):
+            print(
+                "BAD AMOUNT →",
+                "item_id:", self.id,
+                "unit_price:", repr(self.unit_price),
+                "qty:", repr(self.quantity)
+            )
+            return Decimal("0.00")
 
 class EstimationFilter(django_filters.FilterSet):
     requestId = django_filters.CharFilter(field_name='repair_request__requestId')
