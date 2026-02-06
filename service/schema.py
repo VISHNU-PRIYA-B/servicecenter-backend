@@ -120,6 +120,23 @@ class EstimationType(DjangoObjectType):
             return self.repair_request.invoice
         except:
             return None
+    def resolve_subtotal(self, info):
+        try:
+            return float(self.subtotal or 0)
+        except (InvalidOperation, TypeError, ValueError):
+            return 0.0
+
+    def resolve_tax(self, info):
+        try:
+            return float(self.tax or 0)
+        except (InvalidOperation, TypeError, ValueError):
+            return 0.0
+
+    def resolve_total(self, info):
+        try:
+            return float(self.total or 0)
+        except (InvalidOperation, TypeError, ValueError):
+            return 0.0
 
 class EstimationItemType(DjangoObjectType):
     amount = graphene.Float()
@@ -127,8 +144,19 @@ class EstimationItemType(DjangoObjectType):
         model = Estimationitems
         fields = "__all__"
 
-    def resolve_amount(self,info):
-        return float(self.quantity * self.unit_price)
+    def resolve_amount(self, info):
+        try:
+            qty = int(self.quantity or 0)
+            price = self.unit_price
+
+            if price in (None, "", " "):
+                return 0.0
+
+            return float(Decimal(str(price)) * Decimal(qty))
+
+        except (InvalidOperation, TypeError, ValueError):
+            return 0.0
+
     
 class RepairRequestType(DjangoObjectType):
     estimation = graphene.Field(lambda: EstimationType)
