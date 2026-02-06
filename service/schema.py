@@ -695,7 +695,7 @@ class UpdateRepairStatus(graphene.Mutation):
 class GenerateInvoice(graphene.Mutation):
     class Arguments:
         request_id = graphene.String(required=True)
-        total_amount = graphene.Decimal(required=True)
+        total_amount = graphene.Float(required=True)
         parts_replaced = graphene.String(required=False)
         notes = graphene.String(required=False)
 
@@ -742,7 +742,7 @@ class GenerateInvoice(graphene.Mutation):
         invoice = Invoice.objects.create(
             repair_request=repair_request,
             invoice_number=invoice_no,
-            total_amount=total_amount,
+            total_amount=Decimal(str(total_amount)),
             parts_replaced=parts_replaced,
             notes=notes,
         )
