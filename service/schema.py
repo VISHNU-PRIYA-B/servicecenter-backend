@@ -24,6 +24,7 @@ from django.conf import settings as SETTING
 from django.contrib.auth import get_user_model
 import random
 from django.utils import timezone
+from decimal import Decimal, InvalidOperation
 
 class ServiceEstimationStatusChoices(graphene.Enum):
     PENDING="PENDING"   
@@ -523,9 +524,18 @@ class AddEstimationItem(graphene.Mutation):
         repair_request_id = graphene.String(required=True)
         description = graphene.String(required=True)
         quantity = graphene.Int(required=True)
-        unit_price = graphene.Decimal(required=True)
+        unit_price = graphene.String(required=True)
 
     item = graphene.Field(EstimationItemType)
+
+    @staticmethod
+    def clean_decimal(value):
+        try:
+            # Converts '1000 ', '1,000', '₹1000' safely
+            cleaned = str(value).strip().replace(",", "")
+            return Decimal(cleaned)
+        except (InvalidOperation, TypeError, ValueError):
+            raise GraphQLError(f"Invalid unit price: {value}")
 
     @classmethod
     @login_required
