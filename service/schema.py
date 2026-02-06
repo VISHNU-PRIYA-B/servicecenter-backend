@@ -119,7 +119,7 @@ class EstimationType(DjangoObjectType):
             return None
 
 class EstimationItemType(DjangoObjectType):
-    amount = graphene.Float()
+    amount = graphene.Decimal()
     class Meta:
         model = Estimationitems
         fields = "__all__"
@@ -527,7 +527,7 @@ class AddEstimationItem(graphene.Mutation):
         repair_request_id = graphene.String(required=True)
         description = graphene.String(required=True)
         quantity = graphene.Int(required=True)
-        unit_price = graphene.String(required=True)
+        unit_price = graphene.Decimal(required=True)
 
     item = graphene.Field(EstimationItemType)
     @classmethod
@@ -560,6 +560,11 @@ class AddEstimationItem(graphene.Mutation):
             quantity=quantity,
             unit_price=unit_price
         )
+
+        estimation.calculate_totals()
+
+        repair_request.status ="WAITING_FOR_APPROVAL"
+        repair_request.save()
 
         return AddEstimationItem(item=item)
 
@@ -667,8 +672,9 @@ class UpdateRepairStatus(graphene.Mutation):
 
         Updaterepairstatus.objects.create(
             repairrequest=repair_request,
+            estimation=estimation,
             update_status=update_status,
-            description=description
+            description=description,
         )
 
         return UpdateRepairStatus(
@@ -681,7 +687,7 @@ class UpdateRepairStatus(graphene.Mutation):
 class GenerateInvoice(graphene.Mutation):
     class Arguments:
         request_id = graphene.String(required=True)
-        total_amount = graphene.Float(required=True)
+        total_amount = graphene.Decimal(required=True)
         parts_replaced = graphene.String(required=False)
         notes = graphene.String(required=False)
 
@@ -728,7 +734,7 @@ class GenerateInvoice(graphene.Mutation):
         invoice = Invoice.objects.create(
             repair_request=repair_request,
             invoice_number=invoice_no,
-            total_amount=Decimal(str(total_amount)),
+            total_amount=total_amount,
             parts_replaced=parts_replaced,
             notes=notes,
         )
