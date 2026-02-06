@@ -551,7 +551,11 @@ class AddEstimationItem(graphene.Mutation):
             estimation = Estimation.objects.create(
                 repair_request=repair_request,
                 approved=None,
-                status="WAITING_FOR_APPROVAL"
+                status="WAITING_FOR_APPROVAL",  
+                started_date=None,
+                repairing_date=None,
+                testing_date=None,
+                ready_to_deliver_date=None,
             )
 
         item = Estimationitems.objects.create(
