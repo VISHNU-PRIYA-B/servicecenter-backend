@@ -162,6 +162,7 @@ class UpdaterepairstatusType(DjangoObjectType):
        fields = "__all__"
 
 class InvoiceType(DjangoObjectType):
+    total_amount = graphene.Float() 
     items = graphene.List(EstimationItemType)
     class Meta:
         model = Invoice
