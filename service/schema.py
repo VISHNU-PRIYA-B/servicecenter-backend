@@ -109,9 +109,6 @@ class EstimationType(DjangoObjectType):
     status = ServiceEstimationStatusChoices()
     invoice = graphene.Field(lambda: InvoiceType)
 
-    subtotal = graphene.Float()
-    tax = graphene.Float()
-    total = graphene.Float()
     class Meta:
         model = Estimation
         fields = "__all__"
@@ -120,23 +117,6 @@ class EstimationType(DjangoObjectType):
             return self.repair_request.invoice
         except:
             return None
-    def resolve_subtotal(self, info):
-        try:
-            return float(self.subtotal or 0)
-        except (InvalidOperation, TypeError, ValueError):
-            return 0.0
-
-    def resolve_tax(self, info):
-        try:
-            return float(self.tax or 0)
-        except (InvalidOperation, TypeError, ValueError):
-            return 0.0
-
-    def resolve_total(self, info):
-        try:
-            return float(self.total or 0)
-        except (InvalidOperation, TypeError, ValueError):
-            return 0.0
 
 class EstimationItemType(DjangoObjectType):
     amount = graphene.Float()
@@ -145,17 +125,7 @@ class EstimationItemType(DjangoObjectType):
         fields = "__all__"
 
     def resolve_amount(self, info):
-        try:
-            qty = int(self.quantity or 0)
-            price = self.unit_price
-
-            if price in (None, "", " "):
-                return 0.0
-
-            return float(Decimal(str(price)) * Decimal(qty))
-
-        except (InvalidOperation, TypeError, ValueError):
-            return 0.0
+        return self.quantity * self.unit_price
 
     
 class RepairRequestType(DjangoObjectType):
@@ -560,16 +530,6 @@ class AddEstimationItem(graphene.Mutation):
         unit_price = graphene.String(required=True)
 
     item = graphene.Field(EstimationItemType)
-
-    @staticmethod
-    def clean_decimal(value):
-        try:
-            # Converts '1000 ', '1,000', '₹1000' safely
-            cleaned = str(value).strip().replace(",", "")
-            return Decimal(cleaned)
-        except (InvalidOperation, TypeError, ValueError):
-            raise GraphQLError(f"Invalid unit price: {value}")
-
     @classmethod
     @login_required
     def mutate(cls, root, info, repair_request_id, description, quantity, unit_price):
@@ -598,11 +558,8 @@ class AddEstimationItem(graphene.Mutation):
             estimation=estimation,
             description=description,
             quantity=quantity,
-            unit_price=cls.clean_decimal(unit_price)
+            unit_price=unit_price
         )
-
-        estimation.calculate_totals()
-
 
         return AddEstimationItem(item=item)
 
