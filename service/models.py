@@ -7,6 +7,7 @@ from django.conf import settings
 import uuid
 from django.utils import timezone
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 
 #Custom User Manager
 class UserManager(BaseUserManager):
@@ -137,14 +138,35 @@ class Estimation(models.Model):
 
     def __str__(self):
         return f"Estimation for Request {self.repair_request_id}"
+
+
     def calculate_totals(self):
-        total = Decimal("0.00")
+        subtotal = Decimal("0.00")
+
         for item in self.items.all():
-            total +=item.amount
-        self.subtotal = total
-        self.tax = Decimal("0.00")
-        self.total = total
-        self.save()
+            try:
+                raw_amount = item.amount
+
+                if raw_amount in (None, "", " "):
+                    amount = Decimal("0.00")
+                else:
+                    amount = Decimal(str(raw_amount).strip())
+
+                subtotal += amount
+
+            except (InvalidOperation, TypeError, ValueError):
+            # TEMP DEBUG – keep until stable
+                print(
+                    "BAD ITEM FOUND →",
+                    "Item ID:", item.id,
+                    "amount:", repr(item.amount)
+                )
+                raise
+
+        self.subtotal = subtotal
+        self.tax = Decimal("0.00")   # adjust if you add tax logic later
+        self.total = subtotal
+        self.save(update_fields=["subtotal", "tax", "total"])
     
 class Estimationitems(models.Model):
     estimation = models.ForeignKey(Estimation,on_delete=models.CASCADE, related_name="items")
