@@ -108,6 +108,10 @@ class CompanyProfileType(DjangoObjectType):
 class EstimationType(DjangoObjectType):
     status = ServiceEstimationStatusChoices()
     invoice = graphene.Field(lambda: InvoiceType)
+
+    subtotal = graphene.Float()
+    tax = graphene.Float()
+    total = graphene.Float()
     class Meta:
         model = Estimation
         fields = "__all__"
@@ -118,13 +122,13 @@ class EstimationType(DjangoObjectType):
             return None
 
 class EstimationItemType(DjangoObjectType):
-    amount = graphene.Decimal()
+    amount = graphene.Float()
     class Meta:
         model = Estimationitems
         fields = "__all__"
 
     def resolve_amount(self,info):
-        return self.quantity*self.unit_price
+        return float(self.quantity * self.unit_price)
     
 class RepairRequestType(DjangoObjectType):
     estimation = graphene.Field(lambda: EstimationType)
