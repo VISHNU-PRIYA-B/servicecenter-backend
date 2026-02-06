@@ -570,7 +570,7 @@ class AddEstimationItem(graphene.Mutation):
             estimation=estimation,
             description=description,
             quantity=quantity,
-            unit_price=unit_price
+            unit_price=cls.clean_decimal(unit_price)
         )
 
         estimation.calculate_totals()
