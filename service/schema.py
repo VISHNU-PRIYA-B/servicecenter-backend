@@ -754,9 +754,9 @@ class GenerateInvoice(graphene.Mutation):
         if not estimation:
             raise GraphQLError("Estimation not found for this repair request")
 
-        # Check invoice correctly
-        if Invoice.objects.filter(repair_request=repair_request).exists():
-            raise GraphQLError("Invoice already generated")
+        # # Check invoice correctly
+        # if Invoice.objects.filter(repair_request=repair_request).exists():
+        #     raise GraphQLError("Invoice already generated")
         
         # generate invoice number
         max_id = Invoice.objects.aggregate(max_id=Max("id"))["max_id"]
