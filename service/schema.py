@@ -25,6 +25,7 @@ from django.contrib.auth import get_user_model
 import random
 from django.utils import timezone
 from decimal import Decimal, InvalidOperation
+from django.db.models import Max
 
 class ServiceEstimationStatusChoices(graphene.Enum):
     PENDING="PENDING"   
@@ -247,11 +248,31 @@ class Query(graphene.ObjectType):
 
     # customer VIEW THEIR ESTIMATION
         # multiple estimation:
+    # my_estimations = graphene.List(EstimationType)
+    # @login_required
+    # def resolve_my_estimations(self,info):
+    #     print("Logged in user",info.context.user)
+    #     return Estimation.objects.filter(repair_request__customer=info.context.user)
+    
+
     my_estimations = graphene.List(EstimationType)
+
     @login_required
-    def resolve_my_estimations(self,info):
-        print("Logged in user",info.context.user)
-        return Estimation.objects.filter(repair_request__customer=info.context.user)
+    def resolve_my_estimations(self, info):
+        user = info.context.user
+
+        # 1️⃣ Find latest estimation ID per repair request
+        latest_ids = (
+            Estimation.objects
+            .filter(repair_request__customer=user)
+            .values("repair_request_id")
+            .annotate(latest_id=Max("id"))   # or Max("created_at")
+            .values_list("latest_id", flat=True)
+        )
+
+        # 2️⃣ Return ONLY those estimations
+        return Estimation.objects.filter(id__in=latest_ids)
+    
     
     # Based on request shows estimation
     my_request_estimations = graphene.List(EstimationType, request_id=graphene.String(required=True))
