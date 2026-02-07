@@ -150,9 +150,20 @@ class RepairRequestType(DjangoObjectType):
         return estimation.items.all() if estimation else []
 
     def resolve_updates(self, info):
-        return Updaterepairstatus.objects.filter(
-            repairrequest=self
-        ).order_by("updated_on")
+        latest_estimation = (
+            self.estimations
+            .order_by("-created_at")
+            .first()
+        )
+
+        if not latest_estimation:
+            return []
+
+        return (
+            Updaterepairstatus.objects
+            .filter(estimation=latest_estimation)
+            .order_by("updated_on", "id")
+        )
     
 class UpdaterepairstatusType(DjangoObjectType):
     class Meta:
@@ -552,10 +563,6 @@ class AddEstimationItem(graphene.Mutation):
                 repair_request=repair_request,
                 approved=None,
                 status="WAITING_FOR_APPROVAL",  
-                started_date=None,
-                repairing_date=None,
-                testing_date=None,
-                ready_to_deliver_date=None,
             )
 
         item = Estimationitems.objects.create(
