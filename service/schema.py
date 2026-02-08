@@ -719,6 +719,7 @@ class UpdateRepairStatus(graphene.Mutation):
 class GenerateInvoice(graphene.Mutation):
     class Arguments:
         request_id = graphene.String(required=True)
+        total_amount = graphene.Decimal(required=True)
         parts_replaced = graphene.String(required=False)
         notes = graphene.String(required=False)
 
