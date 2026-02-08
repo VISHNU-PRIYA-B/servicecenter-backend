@@ -76,7 +76,7 @@ def create_invoice_pdf(invoice):
     y -= 20
 
     #  ITEMS TABLE 
-    estimation = invoice.repair_request.estimations.order_by("-created_at").first()
+    estimation = invoice.repair_request.estimations.filter(approved=None).order_by("-created_at").first()
     if not estimation:
         raise Exception("No estimation found for this repair request")
 
