@@ -727,7 +727,7 @@ class GenerateInvoice(graphene.Mutation):
 
     @classmethod
     @login_required
-    def mutate(cls, root, info, request_id, parts_replaced=None, notes=None):
+    def mutate(cls, root, info, request_id,total_amount, parts_replaced=None, notes=None):
         user = info.context.user
 
         if not user.admin:
