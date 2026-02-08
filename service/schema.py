@@ -741,7 +741,7 @@ class GenerateInvoice(graphene.Mutation):
         except RepairRequest.DoesNotExist:
             raise GraphQLError("Repair request not found")
         
-        estimation=(Estimation.objects.filter(repair_request=repair_request).order_by("-created_at").first())
+        estimation=Estimation.objects.filter(repair_request=repair_request,approved=None).order_by("-created_at").first()
 
         if not estimation:
             raise GraphQLError("Estimation not found for this repair request")
@@ -749,11 +749,7 @@ class GenerateInvoice(graphene.Mutation):
 
         if estimation.status != "READY_TO_DELIVER":
             raise GraphQLError("Invoice can only be generated at delivery state")
-        # Check estimation exists
-        estimation = Estimation.objects.filter(repair_request=repair_request).order_by("-created_at").first()
-        if not estimation:
-            raise GraphQLError("Estimation not found for this repair request")
-
+    
         # # Check invoice correctly
         # if Invoice.objects.filter(repair_request=repair_request).exists():
         #     raise GraphQLError("Invoice already generated")
@@ -765,6 +761,7 @@ class GenerateInvoice(graphene.Mutation):
 
         invoice = Invoice.objects.create(
             repair_request=repair_request,
+            estimation=estimation,
             invoice_number=invoice_no,
             total_amount=total_amount,
             parts_replaced=parts_replaced,
