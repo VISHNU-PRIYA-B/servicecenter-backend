@@ -191,7 +191,7 @@ class Updaterepairstatus(models.Model):
 
 
 class Invoice(models.Model):
-    estimation=models.OneToOneField(Estimation,on_delete=models.CASCADE,related_name="generated_invoice",null=True,blank=True)
+    estimation=models.ForeignKey(Estimation,on_delete=models.CASCADE,related_name="invoices",null=True,blank=True)
     invoice_number = models.CharField(max_length=50,unique=True,null=True,blank=True)
     repair_request = models.ForeignKey(RepairRequest, on_delete=models.CASCADE)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
