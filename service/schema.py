@@ -692,24 +692,13 @@ class UpdateRepairStatus(graphene.Mutation):
         elif update_status == "READY_TO_DELIVER" and not estimation.ready_to_deliver_date:
             estimation.ready_to_deliver_date = now
 
-            if not hasattr(estimation, "invoice"):
+            if not estimation.invoice:
                 invoice = Invoice.objects.create(
                     estimation=estimation,
-                    repair_request=repair_request,
                     total_amount=estimation.total
                 )
-
-            pdf_url = create_invoice_pdf(invoice)
-            invoice.pdf_url = pdf_url
-            invoice.save()
-
-        #     if not estimation.invoice:
-        #         invoice = Invoice.objects.create(
-        #             estimation=estimation,
-        #             total_amount=estimation.total
-        #         )
-        #         estimation.invoice = invoice
-        # estimation.save()
+                estimation.invoice = invoice
+        estimation.save()
 
         Updaterepairstatus.objects.create(
             repairrequest=repair_request,
