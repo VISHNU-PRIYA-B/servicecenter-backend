@@ -760,7 +760,7 @@ class GenerateInvoice(graphene.Mutation):
             repair_request=repair_request,
             estimation=estimation,          
             invoice_number=invoice_no,
-            total_amount=estimation.total,  
+            total_amount=total_amount,  
             parts_replaced=parts_replaced,
             notes=notes,
         )
