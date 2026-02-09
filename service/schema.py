@@ -114,12 +114,10 @@ class EstimationType(DjangoObjectType):
         model = Estimation
         fields = "__all__"
     def resolve_invoice(self,info):
-        # try:
-        #     return self.repair_request.invoice
-        # except:
-        #     return None
-        return getattr(self,"invoice",None)
-
+        try:
+            return self.repair_request.invoice
+        except:
+            return None
 
 class EstimationItemType(DjangoObjectType):
     amount = graphene.Decimal()
@@ -677,7 +675,7 @@ class UpdateRepairStatus(graphene.Mutation):
             raise GraphQLError("Invalid status update.")
 
         estimation.status = update_status
-                # Set ONLY the relevant date
+                # ✅ Set ONLY the relevant date
         now = timezone.now()
 
         if update_status == "STARTED" and not estimation.started_date:
@@ -691,13 +689,6 @@ class UpdateRepairStatus(graphene.Mutation):
 
         elif update_status == "READY_TO_DELIVER" and not estimation.ready_to_deliver_date:
             estimation.ready_to_deliver_date = now
-
-            if not estimation.invoice:
-                invoice = Invoice.objects.create(
-                    estimation=estimation,
-                    total_amount=estimation.total
-                )
-                estimation.invoice = invoice
         estimation.save()
 
         Updaterepairstatus.objects.create(
