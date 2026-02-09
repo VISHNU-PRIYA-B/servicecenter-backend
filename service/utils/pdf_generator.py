@@ -80,16 +80,17 @@ def create_invoice_pdf(invoice):
     if not estimation:
         raise Exception("No estimation found for this repair request")
 
-    
+        
     data = [["Description", "Quantity × Price", "Amount"]]
 
-    for item in estimation.items.all():
+    items = estimation.items.all()
+
+    for item in items:
         data.append([
             item.description,
             f"{item.quantity} × ₹{item.unit_price}",
             f"₹{item.amount}"
         ])
-
     data.append(["", "Total", f"₹{estimation.total}"])
 
     table = Table(data, colWidths=[300, 100, 100])
