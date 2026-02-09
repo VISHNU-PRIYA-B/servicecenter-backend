@@ -130,7 +130,7 @@ class Estimation(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     approved = models.BooleanField(null=True, blank=True, default=None)
     created_at = models.DateTimeField(auto_now_add=True)
-    invoice = models.ForeignKey("Invoice",on_delete=models.SET_NULL,null=True,blank=True,related_name="estimations")
+    # invoice = models.ForeignKey("Invoice",on_delete=models.SET_NULL,null=True,blank=True,related_name="estimations")
     started_date = models.DateTimeField(null=True, blank=True)
     repairing_date = models.DateTimeField(null=True, blank=True)
     testing_date = models.DateTimeField(null=True, blank=True)
