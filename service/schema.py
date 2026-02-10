@@ -807,6 +807,7 @@ class GenerateInvoice(graphene.Mutation):
         invoice = Invoice.objects.create(
             repair_request=repair_request,
             invoice_number=invoice_no,
+            estimation=estimations.last(),
             total_amount=total_amount,
             parts_replaced=parts_replaced,
             notes=notes,
