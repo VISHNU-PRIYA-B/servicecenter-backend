@@ -85,18 +85,20 @@ def create_invoice_pdf(invoice):
 
     # items = estimation.items.all()
     #  ITEMS TABLE  (ALL ESTIMATIONS)
-    items = invoice.items.all()
+    estimations = invoice.repair_request.estimations.all()
 
-    if not items.exists():
+    if not estimations.exists():
         raise Exception("No estimations found for this repair request")
 
     data = [["Description", "Quantity × Price", "Amount"]]
+
+    items = []
     total = 0
 
-    # for est in estimations:
-    #     for item in est.items.all():
-    #         items.append(item)
-    #         total += item.amount
+    for est in estimations:
+        for item in est.items.all():
+            items.append(item)
+            total += item.amount
 
     # for item in items:
     #     data.append([
@@ -111,7 +113,6 @@ def create_invoice_pdf(invoice):
             f"{item.quantity} × ₹{item.unit_price}",
             f"₹{item.amount}"
         ])
-        total +=item.amount
 
     data.append(["", "Total", f"₹{total}"])
 
