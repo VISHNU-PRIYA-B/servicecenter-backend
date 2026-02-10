@@ -815,6 +815,7 @@ class GenerateInvoice(graphene.Mutation):
 
         # 🔥 CRITICAL: refresh + prefetch before PDF
         repair_request.refresh_from_db()
+        estimations = (Estimation.objects.filter(repair_request=repair_request,status="READY_TO_DELIVER").prefetch_related("items"))
 
         pdf_url = create_invoice_pdf(invoice, estimations)
         invoice.pdf_url = pdf_url
