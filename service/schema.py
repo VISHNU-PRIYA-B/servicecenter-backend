@@ -26,6 +26,7 @@ import random
 from django.utils import timezone
 from decimal import Decimal, InvalidOperation
 from django.db.models import Max
+from django.db import transaction
 
 class ServiceEstimationStatusChoices(graphene.Enum):
     PENDING="PENDING"   
@@ -706,6 +707,60 @@ class UpdateRepairStatus(graphene.Mutation):
             status=update_status
         )
 
+# class GenerateInvoice(graphene.Mutation):
+#     class Arguments:
+#         request_id = graphene.String(required=True)
+#         total_amount = graphene.Decimal(required=True)
+#         parts_replaced = graphene.String(required=False)
+#         notes = graphene.String(required=False)
+
+#     invoice = graphene.Field(InvoiceType)
+
+#     @classmethod
+#     @login_required
+#     def mutate(cls, root, info, request_id,total_amount, parts_replaced=None, notes=None):
+#         user = info.context.user
+
+#         if not user.admin:
+#             raise GraphQLError("Only admin can generate invoice")
+
+#         profile = CompanyProfile.objects.filter(user=user).first()
+#         if not profile:
+#             raise GraphQLError("Fill the profile before generating invoice")
+
+#         try:
+#             repair_request = RepairRequest.objects.get(request_id=request_id)
+#         except RepairRequest.DoesNotExist:
+#             raise GraphQLError("Repair request not found")
+
+#         #  THIS is the estimation your UI is showing
+#         estimation = Estimation.objects.filter(
+#             repair_request=repair_request,
+#             status="READY_TO_DELIVER"
+#         ).order_by("-created_at").first()
+
+#         if not estimation:
+#             raise GraphQLError("No READY_TO_DELIVER estimation found")
+
+#         #  Generate invoice number
+#         max_id = Invoice.objects.aggregate(max_id=Max("id"))["max_id"]
+#         next_number = (max_id + 1) if max_id else 1
+#         invoice_no = f"INV-{next_number:05d}"
+
+#         invoice = Invoice.objects.create(
+#             repair_request=repair_request,
+#             estimation=estimation,          
+#             invoice_number=invoice_no,
+#             total_amount=total_amount,  
+#             parts_replaced=parts_replaced,
+#             notes=notes,
+#         )
+
+#         pdf_url = create_invoice_pdf(invoice)
+#         invoice.pdf_url = pdf_url
+#         invoice.save(update_fields=["pdf_url"])
+
+#         return GenerateInvoice(invoice=invoice)
 
 class GenerateInvoice(graphene.Mutation):
     class Arguments:
@@ -718,7 +773,8 @@ class GenerateInvoice(graphene.Mutation):
 
     @classmethod
     @login_required
-    def mutate(cls, root, info, request_id,total_amount, parts_replaced=None, notes=None):
+    @transaction.atomic
+    def mutate(cls, root, info, request_id, total_amount, parts_replaced=None, notes=None):
         user = info.context.user
 
         if not user.admin:
@@ -729,34 +785,37 @@ class GenerateInvoice(graphene.Mutation):
             raise GraphQLError("Fill the profile before generating invoice")
 
         try:
-            repair_request = RepairRequest.objects.get(request_id=request_id)
+            repair_request = (
+                RepairRequest.objects
+                .prefetch_related("estimations__items")
+                .get(request_id=request_id)
+            )
         except RepairRequest.DoesNotExist:
             raise GraphQLError("Repair request not found")
 
-        #  THIS is the estimation your UI is showing
-        estimation = Estimation.objects.filter(
-            repair_request=repair_request,
+        estimations = repair_request.estimations.filter(
             status="READY_TO_DELIVER"
-        ).order_by("-created_at").first()
+        )
 
-        if not estimation:
-            raise GraphQLError("No READY_TO_DELIVER estimation found")
+        if not estimations.exists():
+            raise GraphQLError("No READY_TO_DELIVER estimations found")
 
-        #  Generate invoice number
-        max_id = Invoice.objects.aggregate(max_id=Max("id"))["max_id"]
-        next_number = (max_id + 1) if max_id else 1
-        invoice_no = f"INV-{next_number:05d}"
+        # 🔐 Generate invoice number safely
+        max_id = Invoice.objects.aggregate(max_id=Max("id"))["max_id"] or 0
+        invoice_no = f"INV-{max_id + 1:05d}"
 
         invoice = Invoice.objects.create(
             repair_request=repair_request,
-            estimation=estimation,          
             invoice_number=invoice_no,
-            total_amount=total_amount,  
+            total_amount=total_amount,
             parts_replaced=parts_replaced,
             notes=notes,
         )
 
-        pdf_url = create_invoice_pdf(invoice)
+        # 🔥 CRITICAL: refresh + prefetch before PDF
+        repair_request.refresh_from_db()
+
+        pdf_url = create_invoice_pdf(invoice, estimations)
         invoice.pdf_url = pdf_url
         invoice.save(update_fields=["pdf_url"])
 
