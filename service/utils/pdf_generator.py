@@ -19,7 +19,7 @@ pdfmetrics.registerFont(TTFont('DejaVuSans', FONT_PATH))
 
 
 def create_invoice_pdf(invoice,estimations):
-    file_name = f"INV-{invoice.repair_request.request_id}.pdf"
+    file_name = f"{invoice.invoice_number}.pdf"
     file_path = os.path.join(settings.MEDIA_ROOT, "invoices", file_name)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
