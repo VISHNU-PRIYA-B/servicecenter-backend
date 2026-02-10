@@ -167,7 +167,7 @@ class RepairRequestType(DjangoObjectType):
             .order_by("updated_on", "id")
         )
     def resolve_invoice(self, info):
-        return (Invoice.objects.filter(repair_request=self).order_by("-created_at").first())
+        return (Invoice.objects.filter(repair_request=self).order_by("-generated_on").first())
     
 class UpdaterepairstatusType(DjangoObjectType):
     class Meta:
