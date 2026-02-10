@@ -133,6 +133,7 @@ class RepairRequestType(DjangoObjectType):
     estimation = graphene.Field(lambda: EstimationType)
     items = graphene.List(EstimationItemType)
     updates = graphene.List(lambda: UpdaterepairstatusType)
+    invoice = graphene.Field(InvoiceType)
 
     current_estimation_status = graphene.String()
 
@@ -165,6 +166,8 @@ class RepairRequestType(DjangoObjectType):
             .filter(estimation=latest_estimation)
             .order_by("updated_on", "id")
         )
+    def resolve_invoice(self,info):
+        return Invoice.objects.filter(repair_request=self).first()
     
 class UpdaterepairstatusType(DjangoObjectType):
     class Meta:
@@ -261,7 +264,6 @@ class Query(graphene.ObjectType):
     def resolve_my_estimations(self,info):
         print("Logged in user",info.context.user)
         return Estimation.objects.filter(repair_request__customer=info.context.user)
-    
     
     # Based on request shows estimation
     my_request_estimations = graphene.List(EstimationType, request_id=graphene.String(required=True))
