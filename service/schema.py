@@ -610,6 +610,7 @@ class ApproveEstimation(graphene.Mutation):
 
         if approved:
             estimation.approved = True
+            estimation.status="ACCEPTED"
             estimation.save()
 
                         #  RESET update-status workflow
@@ -678,7 +679,7 @@ class UpdateRepairStatus(graphene.Mutation):
             raise GraphQLError("Invalid status update.")
 
         estimation.status = update_status
-                # ✅ Set ONLY the relevant date
+                # Set ONLY the relevant date
         now = timezone.now()
 
         if update_status == "STARTED" and not estimation.started_date:
@@ -800,7 +801,7 @@ class GenerateInvoice(graphene.Mutation):
         if not estimations.exists():
             raise GraphQLError("No READY_TO_DELIVER estimations found")
 
-        # 🔐 Generate invoice number safely
+        #  Generate invoice number safely
         max_id = Invoice.objects.aggregate(max_id=Max("id"))["max_id"] or 0
         invoice_no = f"INV-{max_id + 1:05d}"
 
@@ -813,7 +814,7 @@ class GenerateInvoice(graphene.Mutation):
             notes=notes,
         )
 
-        # 🔥 CRITICAL: refresh + prefetch before PDF
+        #  CRITICAL: refresh + prefetch before PDF
         repair_request.refresh_from_db()
         estimations = (Estimation.objects.filter(repair_request=repair_request,status="READY_TO_DELIVER").prefetch_related("items"))
 
