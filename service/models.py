@@ -153,6 +153,7 @@ class Estimationitems(models.Model):
     description = models.CharField(max_length=200)
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(decimal_places=2, max_digits=10)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     @property
     def amount(self):
