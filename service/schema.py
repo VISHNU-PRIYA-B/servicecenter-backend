@@ -823,6 +823,67 @@ class GenerateInvoice(graphene.Mutation):
         invoice.save(update_fields=["pdf_url"])
 
         return GenerateInvoice(invoice=invoice)
+    
+class Bill(graphene.Mutation):
+    class Arguments:
+        request_id = graphene.String(required=True)
+        total_amount = graphene.Decimal(required=True)
+        parts_replaced = graphene.String(required=False)
+        notes = graphene.String(required=False)
+
+    invoice = graphene.Field(InvoiceType)
+
+    @classmethod
+    @login_required
+    @transaction.atomic
+    def mutate(cls, root, info, request_id, total_amount, parts_replaced=None, notes=None):
+        user = info.context.user
+
+        if not user.admin:
+            raise GraphQLError("Only admin can generate invoice")
+
+        profile = CompanyProfile.objects.filter(user=user).first()
+        if not profile:
+            raise GraphQLError("Fill the profile before generating invoice")
+
+        try:
+            repair_request = (
+                RepairRequest.objects
+                .prefetch_related("estimations__items")
+                .get(request_id=request_id)
+            )
+        except RepairRequest.DoesNotExist:
+            raise GraphQLError("Repair request not found")
+
+        # estimations = repair_request.estimations.filter(
+        #     status="READY_TO_DELIVER"
+        # )
+
+        # if not estimations.exists():
+        #     raise GraphQLError("No READY_TO_DELIVER estimations found")
+
+        #  Generate invoice number safely
+        max_id = Invoice.objects.aggregate(max_id=Max("id"))["max_id"] or 0
+        invoice_no = f"INV-{max_id + 1:05d}"
+
+        invoice = Invoice.objects.create(
+            repair_request=repair_request,
+            invoice_number=invoice_no,
+            estimation=estimations.last(),
+            total_amount=total_amount,
+            parts_replaced=parts_replaced,
+            notes=notes,
+        )
+
+        #  CRITICAL: refresh + prefetch before PDF
+        repair_request.refresh_from_db()
+        estimations = (Estimation.objects.filter(repair_request=repair_request,).prefetch_related("items"))
+
+        pdf_url = create_invoice_pdf(invoice, estimations)
+        invoice.pdf_url = pdf_url
+        invoice.save(update_fields=["pdf_url"])
+
+        return GenerateInvoice(invoice=invoice)
    
 class CreateOrUpdateCompanyProfile(graphene.Mutation):
     class Arguments:
@@ -897,6 +958,7 @@ class Mutation(graphene.ObjectType):
     approve_estimation = ApproveEstimation.Field()
     update_repair_status = UpdateRepairStatus.Field()
     generate_invoice = GenerateInvoice.Field()
+    bill = Bill.Field()
     create_or_update_company_profile = CreateOrUpdateCompanyProfile.Field()
 
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
