@@ -37,6 +37,7 @@ class ServiceEstimationStatusChoices(graphene.Enum):
     TESTING = "TESTING"
     READY_TO_DELIVER = "READY_TO_DELIVER"
     REJECTED = "REJECTED"
+    INVOICED = "INVOICED"
 
 
 class UserFilter(django_filters.FilterSet):
@@ -552,11 +553,13 @@ class AddEstimationItem(graphene.Mutation):
         description = graphene.String(required=True)
         quantity = graphene.Int(required=True)
         unit_price = graphene.Decimal(required=True)
+        # false for create bill flow
+        requires_approval = graphene.Boolean(default_value=True)
 
     item = graphene.Field(EstimationItemType)
     @classmethod
     @login_required
-    def mutate(cls, root, info, repair_request_id, description, quantity, unit_price):
+    def mutate(cls, root, info, repair_request_id, description, quantity, unit_price,requires_approval=True):
         user = info.context.user
 
         if not user.admin:
@@ -574,8 +577,9 @@ class AddEstimationItem(graphene.Mutation):
         if not estimation:
             estimation = Estimation.objects.create(
                 repair_request=repair_request,
-                approved=None,
-                status="WAITING_FOR_APPROVAL",  
+                approved=None if requires_approval else True,
+                status="WAITING_FOR_APPROVAL" if requires_approval else "STARTED",
+                requires_approval=requires_approval,
             )
 
         item = Estimationitems.objects.create(
@@ -587,7 +591,7 @@ class AddEstimationItem(graphene.Mutation):
 
         estimation.calculate_totals()
 
-        repair_request.status ="WAITING_FOR_APPROVAL"
+        repair_request.status ="WAITING_FOR_APPROVAL" if requires_approval else "STARTED"
         repair_request.save()
 
         return AddEstimationItem(item=item)
@@ -604,6 +608,10 @@ class ApproveEstimation(graphene.Mutation):
     @classmethod
     def mutate(cls, root, info, estimation_id, approved):
         estimation = Estimation.objects.get(id=estimation_id)
+
+                # --- NEW GUARD: Flow 1 estimations should never reach this mutation ---
+        if not estimation.requires_approval:
+            raise GraphQLError("This estimation does not require approval.")
 
         if estimation.status != "WAITING_FOR_APPROVAL":
             raise GraphQLError("Estimation already processed.")
@@ -860,7 +868,10 @@ class GenerateInvoice(graphene.Mutation):
 
         if not estimation:
             raise GraphQLError("No estimation found for this repair request")
-
+                # --- NEW GUARD: block invoice generation for unapproved/not-ready estimations ---
+        if estimation.requires_approval and estimation.status != "READY_TO_DELIVER":
+            raise GraphQLError("Estimation must be approved and ready before generating an invoice")
+        
         # Generate invoice number safely
         max_id = Invoice.objects.aggregate(max_id=Max("id"))["max_id"] or 0
         invoice_no = f"INV-{max_id + 1:05d}"
@@ -873,7 +884,9 @@ class GenerateInvoice(graphene.Mutation):
             parts_replaced=parts_replaced,
             notes=notes,
         )
-
+                # --- NEW: mark the repair request as invoiced ---
+        repair_request.status = "INVOICED"
+        repair_request.save(update_fields=["status"])
         # Refresh + prefetch before PDF generation
         repair_request.refresh_from_db()
         estimation = (

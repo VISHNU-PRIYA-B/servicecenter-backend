@@ -122,7 +122,7 @@ class RepairRequest(models.Model):
         return latest.status if latest else "STARTED"
     
 class Estimation(models.Model):
-    STATUS_CHOICES=[('WAITING_FOR_APPROVAL','WAITING_FOR_APPROVAL'),('STARTED','STARTED'), ('REPAIRING','REPAIRING'),('TESTING','TESTING'),('READY_TO_DELIVER','READY_TO_DELIVER')]
+    STATUS_CHOICES=[('WAITING_FOR_APPROVAL','WAITING_FOR_APPROVAL'),('STARTED','STARTED'), ('REPAIRING','REPAIRING'),('TESTING','TESTING'),('READY_TO_DELIVER','READY_TO_DELIVER'),('INVOICED','INVOICED')]
     repair_request = models.ForeignKey(RepairRequest, on_delete=models.CASCADE, related_name="estimations")
     status = models.CharField(max_length=30,choices=STATUS_CHOICES,default="WAITING_FOR_APPROVAL")
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -135,6 +135,7 @@ class Estimation(models.Model):
     repairing_date = models.DateTimeField(null=True, blank=True)
     testing_date = models.DateTimeField(null=True, blank=True)
     ready_to_deliver_date = models.DateTimeField(null=True, blank=True)
+    requires_approval = models.BooleanField(default=True)
 
     def __str__(self):
         return f"Estimation for Request {self.repair_request_id}"
